@@ -1,0 +1,260 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inferno Calculator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212; /* Deep dark background */
+            color: #ffffff; /* White text for contrast */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            background-color: #222222; /* Slightly lighter dark for calculator body */
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(255, 69, 0, 0.5); /* Fiery orange glow */
+            border: 2px solid #ff4500; /* Orange border */
+        }
+
+        .display {
+            background-color: #333333; /* Darker display background */
+            color: #ff6f00; /* Bright orange display text */
+            font-size: 2.5em;
+            text-align: right;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden; /* For text overflow */
+            position: relative; /* For glow effect */
+            box-shadow: inset 0 0 15px rgba(255, 69, 0, 0.3); /* Inner glow on display */
+        }
+
+        .display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 69, 0, 0.1); /* Subtle orange overlay for heat */
+            mix-blend-mode: overlay;
+            border-radius: 10px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            background-color: #444444; /* Dark button background */
+            color: #ffffff;
+            border: none;
+            padding: 15px;
+            font-size: 1.5em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            position: relative; /* For ripple effect */
+            overflow: hidden; /* Clip ripple */
+        }
+
+        button:hover {
+            background-color: #555555; /* Slightly lighter on hover */
+        }
+
+        button:active {
+            transform: scale(0.95); /* Slight push effect */
+        }
+
+        button.operator {
+            background-color: #ff4500; /* Fiery orange for operators */
+            color: #ffffff;
+        }
+
+        button.operator:hover {
+            background-color: #ff5722; /* Slightly brighter orange on hover */
+        }
+
+        button.equal {
+            background-color: #ff6f00; /* Even brighter orange for equals */
+            color: #ffffff;
+            grid-column: span 2; /* Make equals button wider */
+        }
+
+        button.equal:hover {
+            background-color: #ff8f00; /* Slightly brighter on equals hover */
+        }
+
+        button.clear {
+            background-color: #d32f2f; /* Deep red for clear */
+            color: #ffffff;
+        }
+
+        button.clear:hover {
+            background-color: #f44336; /* Lighter red on clear hover */
+        }
+
+        /* Ripple effect CSS (JS will add .ripple class on click) */
+        button .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: rippleEffect 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.4); /* White ripple */
+        }
+
+        @keyframes rippleEffect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button onclick="backspace()">&#9003;</button> <!-- Backspace symbol -->
+            <button class="operator" onclick="appendOperator('/')">/</button>
+            <button class="operator" onclick="appendOperator('*')">*</button>
+
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="appendOperator('-')">-</button>
+
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="appendOperator('+')">+</button>
+
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="equal" onclick="calculate()">=</button>
+
+            <button onclick="appendNumber('0')">0</button>
+            <button onclick="appendDecimal('.')">.</button>
+        </div>
+    </div>
+
+    <script>
+        let displayValue = '0';
+        let operator = null;
+        let firstValue = null;
+
+        const displayElement = document.getElementById('display');
+        const buttons = document.querySelectorAll('button');
+
+        function updateDisplay() {
+            displayElement.textContent = displayValue;
+        }
+
+        function clearDisplay() {
+            displayValue = '0';
+            operator = null;
+            firstValue = null;
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (displayValue.length > 1) {
+                displayValue = displayValue.slice(0, -1);
+            } else {
+                displayValue = '0';
+            }
+            updateDisplay();
+        }
+
+        function appendNumber(number) {
+            if (displayValue === '0' || displayValue === '-0') {
+                displayValue = number;
+            } else {
+                displayValue += number;
+            }
+            updateDisplay();
+        }
+
+        function appendDecimal() {
+            if (!displayValue.includes('.')) {
+                displayValue += '.';
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (operator && firstValue !== null) {
+                calculate(); // Perform pending operation first
+            }
+            operator = op;
+            firstValue = parseFloat(displayValue);
+            displayValue = '0';
+        }
+
+        function calculate() {
+            if (operator === null || firstValue === null) return;
+
+            let secondValue = parseFloat(displayValue);
+            let result;
+
+            switch (operator) {
+                case '+':
+                    result = firstValue + secondValue;
+                    break;
+                case '-':
+                    result = firstValue - secondValue;
+                    break;
+                case '*':
+                    result = firstValue * secondValue;
+                    break;
+                case '/':
+                    if (secondValue === 0) {
+                        displayValue = "Error";
+                        updateDisplay();
+                        return;
+                    }
+                    result = firstValue / secondValue;
+                    break;
+                default:
+                    return;
+            }
+
+            displayValue = String(result);
+            operator = null;
+            firstValue = null;
+            updateDisplay();
+        }
+
+        // Ripple effect on button click
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const rect = button.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                ripple.style.left = `${x}px`;
+                ripple.style.top = `${y}px`;
+                this.appendChild(ripple);
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600); // Match animation duration
+            });
+        });
+
+        updateDisplay(); // Initial display update
+    </script>
+</body>
+</html>
